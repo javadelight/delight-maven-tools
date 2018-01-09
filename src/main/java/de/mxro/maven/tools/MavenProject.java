@@ -284,16 +284,12 @@ public class MavenProject {
 			try {
 				final TransformerFactory tf = TransformerFactory.newInstance();
 				final Transformer transformer = tf.newTransformer();
-				// transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION,
-				// "yes");
 				final StringWriter writer = new StringWriter();
 
 				transformer.transform(new DOMSource(document), new StreamResult(writer));
 
 				final String output = writer.getBuffer().toString();
 
-				// System.out.println("Defining new pom\n");
-				// System.out.println(output);
 				pom.setText(output);
 			} catch (final TransformerException e1) {
 				throw new RuntimeException(e1);
