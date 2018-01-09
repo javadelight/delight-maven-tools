@@ -196,6 +196,65 @@ public class MavenProject {
 
 		});
 	}
+	
+	/**
+	 * <p>Removes the specified plugin from the project.
+	 * 
+	 * @param projectDir
+	 * @param groupId
+	 * @param artifactId
+	 * @return
+	 */
+	public static boolean removePlugin(final File projectDir, final String groupId, final String artifactId) {
+		final FileItem pom = FilesJre.wrap(projectDir).get("pom.xml");
+
+		if (!pom.exists()) {
+			throw new IllegalArgumentException("Specified directory does not contain a pom.xml file: " + projectDir);
+		}
+
+		Document document;
+		try {
+			document = $(JOOX.builder().parse(new File(pom.getPath()))).document();
+		} catch (final Exception e2) {
+			throw new RuntimeException(e2);
+		}
+
+		final Match project = $(document).first();
+
+		Match plugins = project.child("build").child("plugins").children("plugin");
+
+		Match toDelete = null;
+		for (org.w3c.dom.Element plugin : plugins) {
+
+			if ((groupId == null || groupId.equals($(plugin).child("groupId").content()))
+					&& (artifactId == null || artifactId.equals($(plugin).child("artifactId").content()))) {
+				toDelete = $(plugin);
+			}
+
+		}
+
+		if (toDelete != null) {
+			toDelete.remove();
+
+			try {
+				final TransformerFactory tf = TransformerFactory.newInstance();
+				final Transformer transformer = tf.newTransformer();
+				final StringWriter writer = new StringWriter();
+
+				transformer.transform(new DOMSource(document), new StreamResult(writer));
+
+				final String output = writer.getBuffer().toString();
+
+				pom.setText(output);
+				return true;
+			} catch (final TransformerException e1) {
+				throw new RuntimeException(e1);
+			}
+
+		}
+
+		return false;
+	}
 
 	/**
 	 * 
@@ -229,8 +288,7 @@ public class MavenProject {
 			throw new RuntimeException(e2);
 		}
 
-		final Match root = $(document);
-		final Match project = root.first();
+		final Match project = $(document).first();
 
 		if (project.size() != 1) {
 			throw new RuntimeException("Illegal pom [" + pom + "]. Element project cannot be found.");
